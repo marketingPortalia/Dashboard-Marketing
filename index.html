@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portalia · Dashboard de Leads</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --naranja:#FFB548; --naranja-2:#FF9416; --naranja-soft:#FFE9CC;
+  --gris:#58595B; --tinta:#2B2B2D; --linea:#EFE7DB;
+  --bg:#FFFFFF; --panel:#FFFFFF; --hueso:#FCFAF6;
+  --ok:#2E9E6B; --alerta:#E0533D; --sombra:0 10px 40px -18px rgba(88,89,91,.30);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--hueso);color:var(--tinta);line-height:1.5;-webkit-font-smoothing:antialiased}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
+
+/* HEADER */
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:18px;padding-bottom:22px;border-bottom:2px solid var(--linea);margin-bottom:30px}
+.brand{display:flex;flex-direction:column;gap:4px}
+.kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--naranja-2);font-weight:700}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em}
+h1 span{color:var(--naranja-2)}
+.sub{font-size:13px;color:var(--gris);font-weight:500}
+.month-pick{display:flex;flex-direction:column;gap:6px;text-align:right}
+.month-pick label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris);font-weight:700}
+.month-pick select{padding:9px 14px;border:1.5px solid var(--linea);border-radius:12px;font-family:inherit;font-weight:600;font-size:14px;background:#fff;color:var(--tinta);cursor:pointer}
+.month-pick select:focus{outline:none;border-color:var(--naranja-2)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:30px}
+.kpi{background:var(--panel);border:1px solid var(--linea);border-radius:18px;padding:20px 20px 18px;position:relative;overflow:hidden;box-shadow:var(--sombra);transition:transform .25s,box-shadow .25s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 18px 50px -20px rgba(255,148,22,.4)}
+.kpi::after{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--naranja-soft),transparent 70%);opacity:.8}
+.kpi .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);font-weight:700;position:relative}
+.kpi .val{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:6px;background:linear-gradient(120deg,var(--naranja-2),#FFB548);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.kpi .delta{font-size:12px;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;position:relative}
+.up{color:var(--ok)} .down{color:var(--alerta)}
+
+/* PANELS */
+.panel{background:var(--panel);border:1px solid var(--linea);border-radius:20px;padding:24px;box-shadow:var(--sombra);margin-bottom:24px}
+.panel h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.panel h2::before{content:'';width:7px;height:20px;border-radius:4px;background:linear-gradient(var(--naranja),var(--naranja-2))}
+.panel .desc{font-size:12.5px;color:var(--gris);margin-bottom:18px}
+
+/* TABS */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{padding:8px 16px;border:1.5px solid var(--linea);background:#fff;border-radius:30px;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--gris);cursor:pointer;transition:.2s}
+.tab:hover{border-color:var(--naranja)}
+.tab.on{background:linear-gradient(120deg,var(--naranja-2),var(--naranja));color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(255,148,22,.6)}
+.chart-box{position:relative;height:340px}
+
+/* TWO COL */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}header{align-items:flex-start}.month-pick{text-align:left}}
+
+/* CONTROLS */
+.ctrl{margin-bottom:16px}
+.ctrl label{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--gris);margin-bottom:7px}
+.ctrl label b{color:var(--naranja-2);font-size:13px}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:6px;background:var(--linea);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--naranja-2);cursor:pointer;box-shadow:0 2px 8px rgba(255,148,22,.5);border:3px solid #fff}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--naranja-2);cursor:pointer;border:3px solid #fff}
+
+/* RESULT BOXES */
+.result{background:var(--hueso);border:1px dashed var(--naranja);border-radius:14px;padding:16px;margin-top:8px}
+.bignum{font-size:42px;font-weight:800;background:linear-gradient(120deg,var(--naranja-2),var(--naranja));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.bignum small{font-size:14px;color:var(--gris);font-weight:600;-webkit-text-fill-color:var(--gris)}
+.rangerow{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}
+.rangerow div{flex:1;min-width:90px}
+.rangerow .t{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gris);font-weight:700}
+.rangerow .n{font-size:22px;font-weight:800;color:var(--tinta);margin-top:2px}
+
+/* MODELS TABLE */
+.modtab{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.modtab td{padding:9px 6px;border-bottom:1px solid var(--linea)}
+.modtab td:last-child{text-align:right;font-weight:800;color:var(--naranja-2)}
+.modtab .consenso td{border-top:2px solid var(--naranja);border-bottom:none;font-weight:800;font-size:15px;padding-top:13px}
+.conf{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;margin-top:10px}
+.conf.media{background:var(--naranja-soft);color:var(--naranja-2)}
+.conf.alta{background:#D8F3E5;color:var(--ok)}
+.conf.baja{background:#FBE0DB;color:var(--alerta)}
+
+/* TIPS */
+.tip{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--linea)}
+.tip:last-child{border-bottom:none}
+.tip .ico{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--naranja-soft);display:grid;place-items:center;font-size:17px}
+.tip .tx h4{font-size:14px;font-weight:800;margin-bottom:3px}
+.tip .tx p{font-size:12.5px;color:var(--gris)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:880px){.split{grid-template-columns:1fr}}
+.mejora h3{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.mejora.done h3{color:var(--ok)} .mejora.todo h3{color:var(--naranja-2)}
+.mejora li{list-style:none;font-size:12.5px;padding:7px 0 7px 22px;position:relative;color:var(--tinta);border-bottom:1px dashed var(--linea)}
+.mejora li:last-child{border-bottom:none}
+.mejora.done li::before{content:'✓';position:absolute;left:0;color:var(--ok);font-weight:800}
+.mejora.todo li::before{content:'→';position:absolute;left:0;color:var(--naranja-2);font-weight:800}
+
+.foot{text-align:center;font-size:11px;color:var(--gris);margin-top:30px}
+.btn{padding:9px 16px;border:none;border-radius:12px;background:linear-gradient(120deg,var(--naranja-2),var(--naranja));color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;box-shadow:0 6px 16px -6px rgba(255,148,22,.6)}
+.note{font-size:11.5px;color:var(--gris);font-style:italic;margin-top:10px}
+
+/* CAPTURA */
+.toggle{margin-left:auto;font-size:11px;font-weight:700;color:var(--naranja-2);background:var(--naranja-soft);border:none;padding:5px 12px;border-radius:20px;cursor:pointer;font-family:inherit}
+#dataPanel h2{display:flex;align-items:center}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+.fld{display:flex;flex-direction:column;gap:5px;flex:1;min-width:96px}
+.fld label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);font-weight:700}
+.fld input{padding:9px 11px;border:1.5px solid var(--linea);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--tinta)}
+.fld input:focus{outline:none;border-color:var(--naranja-2)}
+.datatab{width:100%;border-collapse:collapse;margin-top:16px;font-size:12.5px}
+.datatab th{text-align:left;padding:8px 8px;color:var(--gris);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid var(--linea)}
+.datatab td{padding:8px;border-bottom:1px solid var(--linea)}
+.datatab td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.datatab tr:hover td{background:var(--hueso)}
+.del{background:none;border:none;color:var(--alerta);cursor:pointer;font-weight:800;font-size:15px;padding:0 4px}
+.del:hover{transform:scale(1.2)}
+.msg-ok{color:var(--ok)!important;font-style:normal!important;font-weight:700}
+.msg-err{color:var(--alerta)!important;font-style:normal!important;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <span class="kicker">Portalia Desarrollos · Marketing</span>
+    <h1>Dashboard de <span>Leads</span></h1>
+    <span class="sub">Embudo de captación, eficiencia y proyección de cierres · Meta Ads</span>
+  </div>
+  <div class="month-pick">
+    <label for="msel">Mes a analizar</label>
+    <select id="msel"></select>
+  </div>
+</header>
+
+<section class="kpis" id="kpis"></section>
+
+<!-- CAPTURA DE DATOS -->
+<div class="panel" id="dataPanel">
+  <h2>Datos de campaña <button class="toggle" id="toggleData">Mostrar / ocultar</button></h2>
+  <p class="desc">Agrega cada mes nuevo aquí. Todo el dashboard —KPIs, gráficas, embudo y proyecciones— se recalcula solo al guardar. Tus datos quedan guardados en este navegador.</p>
+  <div id="dataBody">
+    <div class="form-row">
+      <div class="fld"><label>Mes</label><input id="iMes" placeholder="Jun-26"></div>
+      <div class="fld"><label>Días del mes</label><input id="iDias" type="number" placeholder="30"></div>
+      <div class="fld"><label>Leads</label><input id="iLeads" type="number" placeholder="0"></div>
+      <div class="fld"><label>Cierres</label><input id="iCierres" type="number" placeholder="0"></div>
+      <div class="fld"><label>Gasto del mes ($)</label><input id="iGasto" type="number" placeholder="0.00" step="0.01"></div>
+      <button class="btn" id="addBtn">＋ Agregar mes</button>
+    </div>
+    <p class="note" id="formMsg"></p>
+    <table class="datatab" id="dataTab"></table>
+  </div>
+</div>
+
+<!-- GRAFICA PRINCIPAL -->
+<div class="panel">
+  <h2>Evolución del embudo</h2>
+  <p class="desc">Cambia la vista para explorar volumen, conversión, costo y cierres a lo largo del tiempo.</p>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-v="vol">Volumen vs costo lead</button>
+    <button class="tab" data-v="conv">Conversión %</button>
+    <button class="tab" data-v="efi">Costo diario real</button>
+    <button class="tab" data-v="cie">Cierres</button>
+  </div>
+  <div class="chart-box"><canvas id="mainChart"></canvas></div>
+</div>
+
+<div class="grid2">
+  <!-- EMBUDO -->
+  <div class="panel">
+    <h2>Embudo del mes</h2>
+    <p class="desc" id="funnelDesc"></p>
+    <div class="chart-box" style="height:300px"><canvas id="funnelChart"></canvas></div>
+  </div>
+
+  <!-- PROYECCION PROBABILISTICA -->
+  <div class="panel">
+    <h2>Proyección probabilística</h2>
+    <p class="desc">Modelo binomial: simula cuántos cierres esperar dado tu costo por lead, conversión y meta.</p>
+    <div class="ctrl">
+      <label>Costo por lead <b id="vCL">$397</b></label>
+      <input type="range" id="sCL" min="200" max="450" value="397" step="5">
+    </div>
+    <div class="ctrl">
+      <label>Conversión esperada <b id="vCV">4.75%</b></label>
+      <input type="range" id="sCV" min="1" max="8" value="4.75" step="0.05">
+    </div>
+    <div class="ctrl">
+      <label>Meta de cierres <b id="vMT">30</b></label>
+      <input type="range" id="sMT" min="10" max="50" value="30" step="1">
+    </div>
+    <div class="result">
+      <div class="bignum" id="probExp">— <small>cierres esperados</small></div>
+      <div class="rangerow">
+        <div><div class="t">Rango 80%</div><div class="n" id="probRange">—</div></div>
+        <div><div class="t">Prob. de meta</div><div class="n" id="probMeta">—</div></div>
+        <div><div class="t">Leads/mes</div><div class="n" id="probLeads">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROYECCION HISTORICA -->
+<div class="panel">
+  <h2>Pronóstico basado en histórico — ¿cuántos cierres este mes?</h2>
+  <p class="desc">Cuatro modelos sobre tus datos reales. El <b>consenso</b> es la estimación central; la confianza depende de qué tan de acuerdo están los modelos entre sí.</p>
+  <div class="grid2">
+    <div>
+      <table class="modtab" id="modTab"></table>
+      <span class="conf" id="confBadge"></span>
+    </div>
+    <div>
+      <div class="result" style="margin-top:0">
+        <div class="bignum" id="consNum">— <small>cierres · consenso Jun-26</small></div>
+        <div class="rangerow">
+          <div><div class="t">Rango probable</div><div class="n" id="consRange">—</div></div>
+          <div><div class="t">vs mes anterior</div><div class="n" id="consVs">—</div></div>
+        </div>
+        <p class="note" id="consNote"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONSEJOS META -->
+<div class="panel">
+  <h2>Cómo optimizar tus campañas de Meta</h2>
+  <p class="desc">Acciones concretas para bajar el costo por lead y subir calificados sin tocar el presupuesto.</p>
+  <div class="grid2">
+    <div id="tipsA"></div>
+    <div id="tipsB"></div>
+  </div>
+</div>
+
+<!-- MEJORAS -->
+<div class="panel">
+  <h2>Balance de rendimiento</h2>
+  <p class="desc">Lo que ya mejoró y lo que falta para seguir optimizando.</p>
+  <div class="split">
+    <div class="mejora done">
+      <h3>✓ Lo que se mejoró</h3>
+      <ul id="mejDone"></ul>
+    </div>
+    <div class="mejora todo">
+      <h3>→ Lo que falta por mejorar</h3>
+      <ul id="mejTodo"></ul>
+    </div>
+  </div>
+</div>
+
+<button class="btn" id="csvBtn">Exportar histórico a CSV</button>
+<button class="btn" id="resetBtn" style="background:#fff;color:var(--gris);border:1.5px solid var(--linea);box-shadow:none;margin-left:8px">Restaurar datos iniciales</button>
+<p class="foot" id="footNote">Costo diario = gasto mensual ÷ días reales del mes · Proyección al siguiente mes</p>
+
+</div>
+
+<script>
+// ===== DATOS =====
+const D = {
+  mes:    ['Nov-25','Dic-25','Ene-26','Feb-26','Mar-26','Abr-26','May-26'],
+  dias:   [30,31,31,28,31,30,31],
+  leads:  [404,513,713,809,605,578,526],
+  cierres:[5,8,18,25,16,28,25],
+  gasto:  [111703.05,149477.81,160439.63,188040.67,210432.38,189662.56,208818.92],
+};
+// ----- semilla inicial (solo se usa la 1a vez) -----
+const SEED={mes:[...D.mes],dias:[...D.dias],leads:[...D.leads],cierres:[...D.cierres],gasto:[...D.gasto]};
+const LSKEY='portalia_leads_v2';
+
+// carga desde localStorage si existe; si no, usa la semilla
+function loadData(){
+  try{
+    const s=localStorage.getItem(LSKEY);
+    if(s){const o=JSON.parse(s);if(o&&o.mes&&o.mes.length){D.mes=o.mes;D.dias=o.dias;D.leads=o.leads;D.cierres=o.cierres;D.gasto=o.gasto;}}
+  }catch(e){}
+}
+function saveData(){
+  try{localStorage.setItem(LSKEY,JSON.stringify({mes:D.mes,dias:D.dias,leads:D.leads,cierres:D.cierres,gasto:D.gasto}));}catch(e){}
+}
+let N;
+function recompute(){
+  N=D.mes.length;
+  D.costoLead = D.gasto.map((g,i)=>g/D.leads[i]);
+  D.costoDiario = D.gasto.map((g,i)=>g/D.dias[i]);     // gasto mes / dias reales
+  D.conv = D.cierres.map((c,i)=>c/D.leads[i]*100);
+  D.cpa = D.gasto.map((g,i)=>D.cierres[i]>0?g/D.cierres[i]:0);
+}
+
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const peso=n=>'$'+Math.round(n).toLocaleString('es-MX');
+const NARANJA='#FF9416', NARANJA2='#FFB548', GRIS='#58595B', LINEA='#EFE7DB';
+
+// ===== SELECTOR MES =====
+const msel=$('#msel');
+function rebuildMonthSelect(keep){
+  msel.innerHTML='';
+  D.mes.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m;msel.appendChild(o)});
+  msel.value=(keep!=null&&keep<N)?keep:N-1;
+}
+msel.onchange=()=>{renderKPIs();renderFunnel()};
+
+// ===== KPIs =====
+function renderKPIs(){
+  const i=+msel.value, p=i>0?i-1:i;
+  const d=(cur,prev,inv=false)=>{
+    if(i===0)return '';
+    const ch=(cur-prev)/prev*100;
+    const good=inv?ch<0:ch>0;
+    return `<div class="delta ${good?'up':'down'}">${ch>0?'▲':'▼'} ${Math.abs(ch).toFixed(1)}%</div>`;
+  };
+  const k=[
+    {l:'Leads',v:D.leads[i].toLocaleString('es-MX'),d:d(D.leads[i],D.leads[p])},
+    {l:'Cierres',v:D.cierres[i],d:d(D.cierres[i],D.cierres[p])},
+    {l:'Conversión',v:D.conv[i].toFixed(2)+'%',d:d(D.conv[i],D.conv[p])},
+    {l:'Costo/lead',v:peso(D.costoLead[i]),d:d(D.costoLead[i],D.costoLead[p],true)},
+  ];
+  $('#kpis').innerHTML=k.map(x=>`<div class="kpi"><div class="lab">${x.l}</div><div class="val">${x.v}</div>${x.d}</div>`).join('');
+}
+
+// ===== GRAFICA PRINCIPAL =====
+let mainChart, curView='vol';
+function buildMain(view){
+  curView=view;
+  if(typeof Chart==='undefined'){showChartFallback('mainChart');return;}
+  const ctx=$('#mainChart');
+  if(mainChart)mainChart.destroy();
+  const grad=ctx.getContext('2d').createLinearGradient(0,0,0,340);
+  grad.addColorStop(0,'rgba(255,148,22,.35)');grad.addColorStop(1,'rgba(255,148,22,0)');
+  let cfg;
+  const base={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{family:'Montserrat',weight:'600'},color:GRIS,usePointStyle:true,pointStyleWidth:10}},
+    tooltip:{backgroundColor:'#fff',titleColor:'#2B2B2D',bodyColor:GRIS,borderColor:LINEA,borderWidth:1,padding:12,cornerRadius:10,titleFont:{family:'Montserrat',weight:'700'},bodyFont:{family:'Montserrat'}}},
+    scales:{x:{grid:{display:false},ticks:{color:GRIS,font:{family:'Montserrat',weight:'600'}}},
+            y:{grid:{color:LINEA},ticks:{color:GRIS,font:{family:'Montserrat'}}}}};
+  if(view==='vol'){
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Leads',data:D.leads,backgroundColor:'rgba(255,181,72,.85)',borderRadius:8,yAxisID:'y'},
+      {label:'Costo/lead',data:D.costoLead,type:'line',borderColor:NARANJA,backgroundColor:grad,fill:true,tension:.4,borderWidth:3,pointBackgroundColor:NARANJA,pointRadius:4,yAxisID:'y1'}
+    ]},options:{...base,scales:{...base.scales,
+      y:{...base.scales.y,position:'left',title:{display:true,text:'Leads',color:GRIS}},
+      y1:{position:'right',grid:{display:false},ticks:{color:GRIS,callback:v=>'$'+v},title:{display:true,text:'Costo/lead',color:GRIS}}}}};
+  }else if(view==='conv'){
+    cfg={type:'line',data:{labels:D.mes,datasets:[
+      {label:'Conversión %',data:D.conv,borderColor:NARANJA,backgroundColor:grad,fill:true,tension:.4,borderWidth:3,pointBackgroundColor:NARANJA,pointRadius:5,pointHoverRadius:7}
+    ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v+'%'}}}}};
+  }else if(view==='efi'){
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Costo diario real (gasto÷días)',data:D.costoDiario,backgroundColor:D.costoDiario.map((_,i)=>i===+msel.value?NARANJA:'rgba(255,181,72,.7)'),borderRadius:8}
+    ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>'$'+v.toLocaleString('es-MX')}}}}};
+  }else{
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Cierres',data:D.cierres,backgroundColor:'rgba(255,148,22,.85)',borderRadius:8},
+      {label:'Tendencia',data:trendLine(D.cierres),type:'line',borderColor:GRIS,borderDash:[6,5],borderWidth:2,pointRadius:0,tension:0}
+    ]},options:base};
+  }
+  mainChart=new Chart(ctx,cfg);
+}
+function trendLine(y){const n=y.length,x=[...Array(n).keys()];
+  const sx=x.reduce((a,b)=>a+b),sy=y.reduce((a,b)=>a+b),sxy=x.reduce((a,b,i)=>a+b*y[i],0),sxx=x.reduce((a,b)=>a+b*b,0);
+  const m=(n*sxy-sx*sy)/(n*sxx-sx*sx),b=(sy-m*sx)/n;return x.map(v=>m*v+b);}
+$$('#tabs .tab').forEach(t=>t.onclick=()=>{$$('#tabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');buildMain(t.dataset.v)});
+
+// ===== EMBUDO =====
+let funnelChart;
+function showChartFallback(id){
+  const c=$('#'+id); if(c&&c.parentElement)c.parentElement.innerHTML='<div style="height:100%;display:grid;place-items:center;color:var(--gris);font-size:13px;text-align:center;padding:20px">No se pudieron cargar las gráficas (sin conexión a Chart.js).<br>Los datos y proyecciones siguen abajo.</div>';
+}
+function renderFunnel(){
+  if(typeof Chart==='undefined'){showChartFallback('funnelChart');return;}
+  const i=+msel.value;
+  $('#funnelDesc').innerHTML=`Mes <b>${D.mes[i]}</b> — de la inversión a los cierres.`;
+  const inv=D.gasto[i],leads=D.leads[i],cal=Math.round(leads*0.42),cie=D.cierres[i];
+  const ctx=$('#funnelChart');if(funnelChart)funnelChart.destroy();
+  funnelChart=new Chart(ctx,{type:'bar',data:{labels:['Leads','Calificados (est.)','Cierres'],
+    datasets:[{data:[leads,cal,cie],backgroundColor:['rgba(255,181,72,.9)','rgba(255,148,22,.9)','rgba(224,83,61,.9)'],borderRadius:8}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#2B2B2D',bodyColor:GRIS,borderColor:LINEA,borderWidth:1,padding:12,cornerRadius:10,
+        callbacks:{afterLabel:c=>c.dataIndex>0?'Tasa: '+(c.parsed.x/leads*100).toFixed(1)+'% de leads':'Inversión: '+peso(inv)}}},
+      scales:{x:{grid:{color:LINEA},ticks:{color:GRIS}},y:{grid:{display:false},ticks:{color:GRIS,font:{family:'Montserrat',weight:'700'}}}}}});
+}
+
+// ===== PROBABILISTICO =====
+function binom(){
+  const cl=+$('#sCL').value, cv=+$('#sCV').value/100, meta=+$('#sMT').value;
+  const presupMes=D.gasto[N-1];               // usa gasto real del ultimo mes
+  const leads=Math.round(presupMes/cl);
+  const exp=leads*cv;
+  const sd=Math.sqrt(leads*cv*(1-cv));
+  const lo=Math.max(0,Math.round(exp-1.28*sd)), hi=Math.round(exp+1.28*sd);
+  // prob de alcanzar meta (aprox normal)
+  const z=(meta-0.5-exp)/sd; const pMeta=1-normcdf(z);
+  $('#vCL').textContent=peso(cl);$('#vCV').textContent=(cv*100).toFixed(2)+'%';$('#vMT').textContent=meta;
+  $('#probExp').innerHTML=Math.round(exp)+' <small>cierres esperados</small>';
+  $('#probRange').textContent=lo+'–'+hi;
+  $('#probMeta').textContent=Math.round(pMeta*100)+'%';
+  $('#probLeads').textContent=leads.toLocaleString('es-MX');
+}
+function normcdf(z){return .5*(1+erf(z/Math.SQRT2))}
+function erf(x){const t=1/(1+.3275911*Math.abs(x));
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);
+  return x>=0?y:-y;}
+['sCL','sCV','sMT'].forEach(id=>$('#'+id).oninput=()=>{sliderTouched=true;binom();});
+let sliderTouched=false;
+function syncSliders(){
+  if(sliderTouched)return;            // respeta lo que el usuario ya ajustó
+  const cl=D.costoLead[N-1], cv=D.conv[N-1];
+  const sCL=$('#sCL'); if(cl>+sCL.max)sCL.max=Math.ceil(cl/10)*10; sCL.value=Math.round(cl/5)*5;
+  const sCV=$('#sCV'); if(cv>+sCV.max)sCV.max=Math.ceil(cv); sCV.value=cv.toFixed(2);
+  $('#sMT').value=Math.max(10,Math.round(D.cierres[N-1]*1.1));
+}
+
+// ===== HISTORICO =====
+function nextMonthLabel(){
+  const last=D.mes[N-1];
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const m=last.match(/^([A-Za-z]{3})-?(\d{2})$/);
+  if(!m)return 'próx. mes';
+  let idx=meses.findIndex(x=>x.toLowerCase()===m[1].toLowerCase());
+  let yr=parseInt(m[2]);
+  if(idx<0)return 'próx. mes';
+  idx++; if(idx>11){idx=0;yr++;}
+  return meses[idx]+'-'+String(yr).padStart(2,'0');
+}
+function forecast(){
+  const y=D.cierres, n=N, x=[...Array(n).keys()];
+  // 1 regresion lineal
+  const tl=trendLine(y), lin=tl[n-1]+ (tl[n-1]-tl[n-2]); // extrapola 1 paso
+  const sx=x.reduce((a,b)=>a+b),sy=y.reduce((a,b)=>a+b),sxy=x.reduce((a,b,i)=>a+b*y[i],0),sxx=x.reduce((a,b)=>a+b*b,0);
+  const m=(n*sxy-sx*sy)/(n*sxx-sx*sx),b=(sy-m*sx)/n; const reg=m*n+b;
+  // 2 promedio movil ponderado (pesos dinamicos: mas peso a meses recientes)
+  const w=x.map(i=>i+1); const wma=y.reduce((a,v,i)=>a+v*w[i],0)/w.reduce((a,b)=>a+b,0);
+  // 3 compuesta: leads proy x conv ponderada (usa hasta los ultimos 3 meses disponibles)
+  const lt=trendLine(D.leads); const leadsP=lt[n-1]+(lt[n-1]-lt[n-2]);
+  const cr=y.map((v,i)=>v/D.leads[i]);
+  const k=Math.min(3,n); let cnum=0,cden=0;
+  for(let j=0;j<k;j++){const wt=j+1; cnum+=cr[n-k+j]*wt; cden+=wt;}
+  const convW=cnum/cden;
+  const comp=leadsP*convW;
+  // 4 Holt
+  let lvl=y[0],tr=y[1]-y[0]; const a=.5,be=.3;
+  for(let t=1;t<n;t++){const last=lvl;lvl=a*y[t]+(1-a)*(lvl+tr);tr=be*(lvl-last)+(1-be)*tr;}
+  const holt=lvl+tr;
+  const models=[['Regresión lineal',reg],['Promedio ponderado',wma],['Tendencia compuesta',comp],['Suavizado Holt',holt]];
+  const vals=models.map(m=>m[1]);
+  const cons=vals.reduce((a,b)=>a+b)/4;
+  const std=Math.sqrt(vals.reduce((a,v)=>a+(v-cons)**2,0)/4);
+  const conf=std<3?['alta','Alta confianza']:std<6?['media','Confianza media']:['baja','Baja confianza'];
+  // render
+  $('#modTab').innerHTML=models.map(m=>`<tr><td>${m[0]}</td><td>${m[1].toFixed(1)}</td></tr>`).join('')+
+    `<tr class="consenso"><td>Consenso</td><td>${cons.toFixed(1)}</td></tr>`;
+  $('#confBadge').textContent=conf[1];$('#confBadge').className='conf '+conf[0];
+  $('#consNum').innerHTML=Math.round(cons)+' <small>cierres · consenso '+nextMonthLabel()+'</small>';
+  $('#consRange').textContent=Math.round(cons-std)+'–'+Math.round(cons+std);
+  const vsPrev=cons-y[n-1];
+  $('#consVs').innerHTML=(vsPrev>=0?'+':'')+vsPrev.toFixed(0);
+  $('#consVs').style.color=vsPrev>=0?'#2E9E6B':'#E0533D';
+  $('#consNote').textContent=`Los 4 modelos oscilan entre ${Math.min(...vals).toFixed(0)} y ${Math.max(...vals).toFixed(0)}. La regresión es la más optimista por tu fuerte tendencia de crecimiento (+${m.toFixed(1)}/mes); el promedio ponderado equilibra hacia abajo. El consenso es tu mejor estimación central.`;
+}
+
+// ===== MOTOR DE CONSEJOS Y BALANCE (dinámico) =====
+// Analiza los datos reales y arma consejos priorizados + balance.
+function analyze(){
+  const i=N-1, p=N-2;                       // ultimo mes y anterior
+  const f=D.mes[0], l=D.mes[i];
+  const pct=(a,b)=>b?((a-b)/b*100):0;
+  // tendencias mes vs mes anterior
+  const dCL = N>1?pct(D.costoLead[i],D.costoLead[p]):0;   // costo/lead
+  const dCV = N>1?pct(D.conv[i],D.conv[p]):0;             // conversion
+  const dLD = N>1?pct(D.leads[i],D.leads[p]):0;           // volumen leads
+  const dCI = N>1?pct(D.cierres[i],D.cierres[p]):0;       // cierres
+  // vs inicio (histórico completo)
+  const clFirst=D.costoLead[0], clNow=D.costoLead[i];
+  const cvFirst=D.conv[0], cvNow=D.conv[i];
+  const cpaFirst=D.cpa[0], cpaNow=D.cpa[i];
+  // promedios para detectar mejor/peor mes
+  const maxLeads=Math.max(...D.leads), idxMaxLeads=D.leads.indexOf(maxLeads);
+  const bestConv=Math.max(...D.conv), idxBestConv=D.conv.indexOf(bestConv);
+  const avgCL=D.costoLead.reduce((a,b)=>a+b,0)/N;
+  return {i,p,f,l,dCL,dCV,dLD,dCI,clFirst,clNow,cvFirst,cvNow,cpaFirst,cpaNow,
+          maxLeads,idxMaxLeads,bestConv,idxBestConv,avgCL,pct};
+}
+
+// Banco de consejos: cada uno decide si aplica y con qué prioridad según los datos.
+function buildTips(){
+  const a=analyze(), t=[];
+  const push=(prio,ico,titulo,texto)=>t.push({prio,ico,titulo,texto});
+
+  // costo/lead subiendo
+  if(a.dCL>8) push(10,'💬','Renueva creativos: hay fatiga',
+    `Tu costo por lead subió ${a.dCL.toFixed(0)}% respecto a ${D.mes[a.p]} (ahora ${peso(a.clNow)}). Suele ser fatiga de creativo: rota 3-4 variantes nuevas (video corto, testimonio, recorrido del desarrollo) y deja correr solo a las ganadoras.`);
+  else if(a.clNow>a.avgCL*1.12) push(7,'💬','Costo por lead arriba del promedio',
+    `Tu costo/lead (${peso(a.clNow)}) está por encima de tu promedio histórico (${peso(a.avgCL)}). Refresca creativos y revisa que la audiencia no esté demasiado acotada.`);
+  else if(a.dCL<-8) push(3,'✅','Captación más eficiente',
+    `Bajaste el costo por lead ${Math.abs(a.dCL).toFixed(0)}% vs ${D.mes[a.p]}. Identifica qué creativo o audiencia lo logró y súbele presupuesto a ese conjunto.`);
+
+  // conversión
+  if(a.dCV<-8) push(9,'🧲','Cae la conversión: filtra mejor',
+    `Tu conversión a cierre bajó ${Math.abs(a.dCV).toFixed(0)}% vs ${D.mes[a.p]} (ahora ${a.cvNow.toFixed(2)}%). Agrega 1-2 preguntas calificadoras (presupuesto, zona, intención) en el Instant Form para que lleguen menos leads pero más calificados.`);
+  else if(a.cvNow<3) push(8,'🧲','Conversión baja: califica en el formulario',
+    `Con ${a.cvNow.toFixed(2)}% de conversión, gran parte del gasto se va en leads que no cierran. Suma preguntas calificadoras y dirige el anuncio al perfil que sí compra.`);
+  else if(a.dCV>8) push(2,'✅','Conversión al alza',
+    `Subiste la conversión ${a.dCV.toFixed(0)}% vs ${D.mes[a.p]}. Documenta qué cambió en seguimiento o calidad de lead y vuélvelo proceso fijo.`);
+
+  // volumen de leads
+  if(a.dLD<-10) push(8,'📈','Reactiva el volumen de leads',
+    `Los leads cayeron ${Math.abs(a.dLD).toFixed(0)}% vs ${D.mes[a.p]}. Sin subir presupuesto: amplía 1-2 audiencias nuevas, prueba colocaciones Advantage+ y revisa si algún conjunto agotó su público.`);
+  else if(a.maxLeads>D.leads[a.i]*1.25 && a.idxMaxLeads<a.i) push(5,'📈','Recupera tu pico de captación',
+    `Tu mejor mes fue ${D.mes[a.idxMaxLeads]} con ${a.maxLeads} leads; ahora vas en ${D.leads[a.i]}. Revisa qué creativo/audiencia usabas entonces y reactívalo.`);
+
+  // cierres
+  if(a.dCI<-15) push(9,'⚠️','Bajaron los cierres',
+    `Cerraste ${Math.abs(a.dCI).toFixed(0)}% menos que en ${D.mes[a.p]}. Revisa tiempos de respuesta al lead (idealmente <5 min) y el seguimiento del equipo comercial, no solo la campaña.`);
+  else if(a.dCI>15) push(2,'🚀','Mes fuerte de cierres',
+    `Cerraste ${a.dCI.toFixed(0)}% más que en ${D.mes[a.p]}. Buen momento para escalar presupuesto gradualmente (10-15%) en los conjuntos que están trayendo a esos cierres.`);
+
+  // consejos base (siempre útiles, prioridad media-baja) para que nunca queden menos de ~5
+  push(4,'📱','Activa retargeting de calientes',
+    `Crea una audiencia de quienes vieron 50%+ del video o abrieron el formulario sin enviar. Re-impactarlos cierra a mayor tasa y menor costo que la prospección fría.`);
+  push(4,'⏱','Optimiza por evento de calidad',
+    `Si tu pixel/CAPI envía el evento "lead calificado" o "cita agendada", optimiza la campaña hacia ese evento en vez de "lead". Meta aprende a traer gente parecida a quien sí cierra.`);
+  push(3,'🗺','Excluye zonas que no cierran',
+    `Revisa el desglose por ubicación. Si hay municipios o radios con muchos leads y cero cierres, exclúyelos para reconcentrar el gasto donde sí convierte.`);
+  push(3,'🎯','Consolida conjuntos que compiten',
+    `Si tienes varios conjuntos apuntando a públicos parecidos, únelos en una campaña Advantage+ para evitar solaparte en la subasta y dejar que Meta reparta mejor.`);
+
+  // ordena por prioridad desc y toma los 6 más relevantes
+  t.sort((x,y)=>y.prio-x.prio);
+  return t.slice(0,6);
+}
+function renderTips(){
+  const tips=buildTips();
+  const mid=Math.ceil(tips.length/2);
+  const html=t=>`<div class="tip"><div class="ico">${t.ico}</div><div class="tx"><h4>${t.titulo}</h4><p>${t.texto}</p></div></div>`;
+  $('#tipsA').innerHTML=tips.slice(0,mid).map(html).join('');
+  $('#tipsB').innerHTML=tips.slice(mid).map(html).join('');
+}
+
+// ===== BALANCE DINÁMICO =====
+function renderBalance(){
+  const a=analyze(), done=[], todo=[];
+  // --- LO QUE MEJORÓ (comparando inicio vs ahora y mes vs mes) ---
+  if(a.cvNow>a.cvFirst){
+    const x=(a.cvNow/a.cvFirst);
+    done.push(`Conversión a cierre pasó de ${a.cvFirst.toFixed(2)}% (${a.f}) a ${a.cvNow.toFixed(2)}% (${a.l}): ${x>=1.5?x.toFixed(1)+'× mejor':'+'+(a.cvNow-a.cvFirst).toFixed(2)+' pts'}.`);
+  }
+  if(a.cpaNow<a.cpaFirst && isFinite(a.cpaFirst)){
+    done.push(`Costo por cierre (CPA) bajó de ${peso(a.cpaFirst)} a ${peso(a.cpaNow)}: el embudo es más eficiente.`);
+  }
+  if(D.cierres[a.i]>D.cierres[0]){
+    done.push(`Cierres mensuales subieron de ${D.cierres[0]} (${a.f}) a ${D.cierres[a.i]} (${a.l}).`);
+  }
+  if(a.dCL<-5) done.push(`Este mes bajaste el costo por lead ${Math.abs(a.dCL).toFixed(0)}% respecto a ${D.mes[a.p]}.`);
+  if(a.dCV>5) done.push(`Mejoraste la conversión ${a.dCV.toFixed(0)}% respecto a ${D.mes[a.p]}.`);
+  if(!done.length) done.push('Aún no hay suficiente histórico para detectar mejoras claras. Agrega más meses para ver la tendencia.');
+
+  // --- LO QUE FALTA POR MEJORAR ---
+  if(a.clNow>a.clFirst){
+    todo.push(`Costo por lead subió de ${peso(a.clFirst)} (${a.f}) a ${peso(a.clNow)} (${a.l}): recupera eficiencia en captación con creativos frescos.`);
+  }
+  if(a.dLD<-8){
+    todo.push(`El volumen de leads cae (${a.dLD.toFixed(0)}% vs ${D.mes[a.p]}): reactiva prospección sin subir presupuesto.`);
+  }else if(a.maxLeads>D.leads[a.i]*1.25 && a.idxMaxLeads<a.i){
+    todo.push(`Estás por debajo de tu pico de ${a.maxLeads} leads (${D.mes[a.idxMaxLeads]}): hay espacio para recuperar volumen.`);
+  }
+  if(a.cvNow<4) todo.push(`Conversión en ${a.cvNow.toFixed(2)}%: filtrar mejor el lead en el formulario puede subir cierres sin gastar más.`);
+  // recordatorios estructurales que casi siempre aplican
+  todo.push('Medir "calificados" y "citas" mes a mes para optimizar la campaña por calidad y no solo por volumen de leads.');
+  todo.push('Mantener un calendario fijo de rotación de creativos cada 10-14 días para no llegar a fatiga.');
+  if(a.dCI<-10) todo.push(`Cierres bajaron ${Math.abs(a.dCI).toFixed(0)}% vs ${D.mes[a.p]}: revisar tiempos de respuesta y seguimiento comercial.`);
+
+  $('#mejDone').innerHTML=done.map(t=>`<li>${t}</li>`).join('');
+  $('#mejTodo').innerHTML=todo.slice(0,6).map(t=>`<li>${t}</li>`).join('');
+}
+
+// ===== CSV =====
+$('#csvBtn').onclick=()=>{
+  let csv='\uFEFFMes,Dias,Leads,Cierres,Conversion%,Gasto,CostoLead,CostoDiarioReal,CPA\n';
+  for(let i=0;i<N;i++)csv+=`${D.mes[i]},${D.dias[i]},${D.leads[i]},${D.cierres[i]},${D.conv[i].toFixed(2)},${D.gasto[i].toFixed(2)},${D.costoLead[i].toFixed(2)},${D.costoDiario[i].toFixed(2)},${D.cpa[i].toFixed(2)}\n`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='portalia_leads.csv';a.click();
+};
+
+// ===== CAPTURA DE DATOS =====
+function renderTable(){
+  let h='<tr><th>Mes</th><th>Días</th><th>Leads</th><th>Cierres</th><th>Conv.</th><th>Gasto</th><th>Costo/lead</th><th>C.diario</th><th></th></tr>';
+  for(let i=0;i<N;i++){
+    h+=`<tr>
+      <td style="text-align:left;font-weight:700">${D.mes[i]}</td>
+      <td>${D.dias[i]}</td>
+      <td>${D.leads[i].toLocaleString('es-MX')}</td>
+      <td>${D.cierres[i]}</td>
+      <td>${D.conv[i].toFixed(2)}%</td>
+      <td>${peso(D.gasto[i])}</td>
+      <td>${peso(D.costoLead[i])}</td>
+      <td>${peso(D.costoDiario[i])}</td>
+      <td><button class="del" data-i="${i}" title="Eliminar">✕</button></td>
+    </tr>`;
+  }
+  $('#dataTab').innerHTML=h;
+  $$('#dataTab .del').forEach(b=>b.onclick=()=>delMonth(+b.dataset.i));
+}
+function msg(t,ok){const m=$('#formMsg');m.textContent=t;m.className='note '+(ok?'msg-ok':'msg-err');setTimeout(()=>{m.textContent='';m.className='note'},3500);}
+
+function addMonth(){
+  const mes=$('#iMes').value.trim();
+  const dias=parseInt($('#iDias').value);
+  const leads=parseInt($('#iLeads').value);
+  const cierres=parseInt($('#iCierres').value);
+  const gasto=parseFloat($('#iGasto').value);
+  if(!mes){return msg('Escribe el nombre del mes (ej. Jun-26).',false);}
+  if(!(dias>=28&&dias<=31)){return msg('Días del mes debe estar entre 28 y 31.',false);}
+  if(!(leads>=0)||isNaN(leads)){return msg('Leads inválido.',false);}
+  if(!(cierres>=0)||isNaN(cierres)){return msg('Cierres inválido.',false);}
+  if(!(gasto>=0)||isNaN(gasto)){return msg('Gasto inválido.',false);}
+  if(cierres>leads){return msg('Los cierres no pueden superar a los leads.',false);}
+  if(D.mes.includes(mes)){return msg('Ese mes ya existe. Bórralo primero si quieres reemplazarlo.',false);}
+  D.mes.push(mes);D.dias.push(dias);D.leads.push(leads);D.cierres.push(cierres);D.gasto.push(gasto);
+  saveData();
+  ['iMes','iDias','iLeads','iCierres','iGasto'].forEach(id=>$('#'+id).value='');
+  renderAll(D.mes.length-1);
+  renderTable();
+  msg('✓ '+mes+' agregado. Dashboard actualizado.',true);
+}
+function delMonth(i){
+  if(N<=2){return msg('Debe quedar al menos 2 meses para las proyecciones.',false);}
+  if(!confirm('¿Eliminar '+D.mes[i]+'?'))return;
+  ['mes','dias','leads','cierres','gasto'].forEach(k=>D[k].splice(i,1));
+  saveData();
+  renderAll();
+  renderTable();
+  msg('Mes eliminado.',true);
+}
+$('#addBtn').onclick=addMonth;
+$('#iGasto').addEventListener('keydown',e=>{if(e.key==='Enter')addMonth()});
+$('#toggleData').onclick=()=>{const b=$('#dataBody');b.style.display=b.style.display==='none'?'':'none';};
+
+$('#resetBtn').onclick=()=>{
+  if(!confirm('Esto borra los meses que capturaste y vuelve a los datos iniciales. ¿Continuar?'))return;
+  D.mes=[...SEED.mes];D.dias=[...SEED.dias];D.leads=[...SEED.leads];D.cierres=[...SEED.cierres];D.gasto=[...SEED.gasto];
+  sliderTouched=false;
+  saveData();renderAll();renderTable();
+};
+
+// ===== INIT / RENDER ALL =====
+function renderAll(keepMonth){
+  recompute();
+  rebuildMonthSelect(keepMonth);
+  renderKPIs();
+  try{buildMain(curView);}catch(e){showChartFallback('mainChart');}
+  try{renderFunnel();}catch(e){showChartFallback('funnelChart');}
+  syncSliders();
+  binom();
+  forecast();
+  renderTable();
+  renderTips();
+  renderBalance();
+  $('#footNote').textContent='Datos '+D.mes[0]+' a '+D.mes[N-1]+' · Costo diario = gasto mensual ÷ días reales del mes · Proyección a '+nextMonthLabel();
+}
+loadData();
+recompute();
+renderAll();
+</script>
+</body>
+</html>
