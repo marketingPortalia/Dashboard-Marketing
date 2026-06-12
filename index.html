@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portalia · Dashboard de Leads</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --naranja:#FFB548; --naranja-2:#FF9416; --naranja-soft:#FFE9CC;
+  --gris:#58595B; --tinta:#2B2B2D; --linea:#EFE7DB;
+  --bg:#FFFFFF; --panel:#FFFFFF; --hueso:#FCFAF6;
+  --ok:#2E9E6B; --alerta:#E0533D; --sombra:0 10px 40px -18px rgba(88,89,91,.30);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--hueso);color:var(--tinta);line-height:1.5;-webkit-font-smoothing:antialiased}
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px}
+
+/* HEADER */
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:18px;padding-bottom:22px;border-bottom:2px solid var(--linea);margin-bottom:30px}
+.brand{display:flex;flex-direction:column;gap:4px}
+.kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--naranja-2);font-weight:700}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em}
+h1 span{color:var(--naranja-2)}
+.sub{font-size:13px;color:var(--gris);font-weight:500}
+.month-pick{display:flex;flex-direction:column;gap:6px;text-align:right}
+.month-pick label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gris);font-weight:700}
+.month-pick select{padding:9px 14px;border:1.5px solid var(--linea);border-radius:12px;font-family:inherit;font-weight:600;font-size:14px;background:#fff;color:var(--tinta);cursor:pointer}
+.month-pick select:focus{outline:none;border-color:var(--naranja-2)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:30px}
+.kpi{background:var(--panel);border:1px solid var(--linea);border-radius:18px;padding:20px 20px 18px;position:relative;overflow:hidden;box-shadow:var(--sombra);transition:transform .25s,box-shadow .25s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 18px 50px -20px rgba(255,148,22,.4)}
+.kpi::after{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--naranja-soft),transparent 70%);opacity:.8}
+.kpi .lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gris);font-weight:700;position:relative}
+.kpi .val{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:6px;background:linear-gradient(120deg,var(--naranja-2),#FFB548);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;position:relative}
+.kpi .delta{font-size:12px;font-weight:700;margin-top:6px;display:inline-flex;align-items:center;gap:4px;position:relative}
+.up{color:var(--ok)} .down{color:var(--alerta)}
+
+/* PANELS */
+.panel{background:var(--panel);border:1px solid var(--linea);border-radius:20px;padding:24px;box-shadow:var(--sombra);margin-bottom:24px}
+.panel h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.panel h2::before{content:'';width:7px;height:20px;border-radius:4px;background:linear-gradient(var(--naranja),var(--naranja-2))}
+.panel .desc{font-size:12.5px;color:var(--gris);margin-bottom:18px}
+
+/* TABS */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{padding:8px 16px;border:1.5px solid var(--linea);background:#fff;border-radius:30px;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--gris);cursor:pointer;transition:.2s}
+.tab:hover{border-color:var(--naranja)}
+.tab.on{background:linear-gradient(120deg,var(--naranja-2),var(--naranja));color:#fff;border-color:transparent;box-shadow:0 6px 16px -6px rgba(255,148,22,.6)}
+.chart-box{position:relative;height:340px}
+
+/* TWO COL */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:880px){.grid2{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}header{align-items:flex-start}.month-pick{text-align:left}}
+
+/* CONTROLS */
+.ctrl{margin-bottom:16px}
+.ctrl label{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--gris);margin-bottom:7px}
+.ctrl label b{color:var(--naranja-2);font-size:13px}
+input[type=range]{width:100%;-webkit-appearance:none;height:6px;border-radius:6px;background:var(--linea);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--naranja-2);cursor:pointer;box-shadow:0 2px 8px rgba(255,148,22,.5);border:3px solid #fff}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--naranja-2);cursor:pointer;border:3px solid #fff}
+
+/* RESULT BOXES */
+.result{background:var(--hueso);border:1px dashed var(--naranja);border-radius:14px;padding:16px;margin-top:8px}
+.bignum{font-size:42px;font-weight:800;background:linear-gradient(120deg,var(--naranja-2),var(--naranja));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.bignum small{font-size:14px;color:var(--gris);font-weight:600;-webkit-text-fill-color:var(--gris)}
+.rangerow{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}
+.rangerow div{flex:1;min-width:90px}
+.rangerow .t{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gris);font-weight:700}
+.rangerow .n{font-size:22px;font-weight:800;color:var(--tinta);margin-top:2px}
+
+/* MODELS TABLE */
+.modtab{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.modtab td{padding:9px 6px;border-bottom:1px solid var(--linea)}
+.modtab td:last-child{text-align:right;font-weight:800;color:var(--naranja-2)}
+.modtab .consenso td{border-top:2px solid var(--naranja);border-bottom:none;font-weight:800;font-size:15px;padding-top:13px}
+.conf{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;margin-top:10px}
+.conf.media{background:var(--naranja-soft);color:var(--naranja-2)}
+.conf.alta{background:#D8F3E5;color:var(--ok)}
+.conf.baja{background:#FBE0DB;color:var(--alerta)}
+
+/* TIPS */
+.tip{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--linea)}
+.tip:last-child{border-bottom:none}
+.tip .ico{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--naranja-soft);display:grid;place-items:center;font-size:17px}
+.tip .tx h4{font-size:14px;font-weight:800;margin-bottom:3px}
+.tip .tx p{font-size:12.5px;color:var(--gris)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:880px){.split{grid-template-columns:1fr}}
+.mejora h3{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.mejora.done h3{color:var(--ok)} .mejora.todo h3{color:var(--naranja-2)}
+.mejora li{list-style:none;font-size:12.5px;padding:7px 0 7px 22px;position:relative;color:var(--tinta);border-bottom:1px dashed var(--linea)}
+.mejora li:last-child{border-bottom:none}
+.mejora.done li::before{content:'✓';position:absolute;left:0;color:var(--ok);font-weight:800}
+.mejora.todo li::before{content:'→';position:absolute;left:0;color:var(--naranja-2);font-weight:800}
+
+.foot{text-align:center;font-size:11px;color:var(--gris);margin-top:30px}
+.btn{padding:9px 16px;border:none;border-radius:12px;background:linear-gradient(120deg,var(--naranja-2),var(--naranja));color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;cursor:pointer;box-shadow:0 6px 16px -6px rgba(255,148,22,.6)}
+.note{font-size:11.5px;color:var(--gris);font-style:italic;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <span class="kicker">Portalia Desarrollos · Marketing</span>
+    <h1>Dashboard de <span>Leads</span></h1>
+    <span class="sub">Embudo de captación, eficiencia y proyección de cierres · Meta Ads</span>
+  </div>
+  <div class="month-pick">
+    <label for="msel">Mes a analizar</label>
+    <select id="msel"></select>
+  </div>
+</header>
+
+<section class="kpis" id="kpis"></section>
+
+<!-- GRAFICA PRINCIPAL -->
+<div class="panel">
+  <h2>Evolución del embudo</h2>
+  <p class="desc">Cambia la vista para explorar volumen, conversión, costo y cierres a lo largo del tiempo.</p>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-v="vol">Volumen vs costo lead</button>
+    <button class="tab" data-v="conv">Conversión %</button>
+    <button class="tab" data-v="efi">Costo diario real</button>
+    <button class="tab" data-v="cie">Cierres</button>
+  </div>
+  <div class="chart-box"><canvas id="mainChart"></canvas></div>
+</div>
+
+<div class="grid2">
+  <!-- EMBUDO -->
+  <div class="panel">
+    <h2>Embudo del mes</h2>
+    <p class="desc" id="funnelDesc"></p>
+    <div class="chart-box" style="height:300px"><canvas id="funnelChart"></canvas></div>
+  </div>
+
+  <!-- PROYECCION PROBABILISTICA -->
+  <div class="panel">
+    <h2>Proyección probabilística</h2>
+    <p class="desc">Modelo binomial: simula cuántos cierres esperar dado tu costo por lead, conversión y meta.</p>
+    <div class="ctrl">
+      <label>Costo por lead <b id="vCL">$397</b></label>
+      <input type="range" id="sCL" min="200" max="450" value="397" step="5">
+    </div>
+    <div class="ctrl">
+      <label>Conversión esperada <b id="vCV">4.75%</b></label>
+      <input type="range" id="sCV" min="1" max="8" value="4.75" step="0.05">
+    </div>
+    <div class="ctrl">
+      <label>Meta de cierres <b id="vMT">30</b></label>
+      <input type="range" id="sMT" min="10" max="50" value="30" step="1">
+    </div>
+    <div class="result">
+      <div class="bignum" id="probExp">— <small>cierres esperados</small></div>
+      <div class="rangerow">
+        <div><div class="t">Rango 80%</div><div class="n" id="probRange">—</div></div>
+        <div><div class="t">Prob. de meta</div><div class="n" id="probMeta">—</div></div>
+        <div><div class="t">Leads/mes</div><div class="n" id="probLeads">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROYECCION HISTORICA -->
+<div class="panel">
+  <h2>Pronóstico basado en histórico — ¿cuántos cierres este mes?</h2>
+  <p class="desc">Cuatro modelos sobre tus datos reales. El <b>consenso</b> es la estimación central; la confianza depende de qué tan de acuerdo están los modelos entre sí.</p>
+  <div class="grid2">
+    <div>
+      <table class="modtab" id="modTab"></table>
+      <span class="conf" id="confBadge"></span>
+    </div>
+    <div>
+      <div class="result" style="margin-top:0">
+        <div class="bignum" id="consNum">— <small>cierres · consenso Jun-26</small></div>
+        <div class="rangerow">
+          <div><div class="t">Rango probable</div><div class="n" id="consRange">—</div></div>
+          <div><div class="t">vs mes anterior</div><div class="n" id="consVs">—</div></div>
+        </div>
+        <p class="note" id="consNote"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONSEJOS META -->
+<div class="panel">
+  <h2>Cómo optimizar tus campañas de Meta</h2>
+  <p class="desc">Acciones concretas para bajar el costo por lead y subir calificados sin tocar el presupuesto.</p>
+  <div class="grid2">
+    <div id="tipsA"></div>
+    <div id="tipsB"></div>
+  </div>
+</div>
+
+<!-- MEJORAS -->
+<div class="panel">
+  <h2>Balance de rendimiento</h2>
+  <p class="desc">Lo que ya mejoró y lo que falta para seguir optimizando.</p>
+  <div class="split">
+    <div class="mejora done">
+      <h3>✓ Lo que se mejoró</h3>
+      <ul id="mejDone"></ul>
+    </div>
+    <div class="mejora todo">
+      <h3>→ Lo que falta por mejorar</h3>
+      <ul id="mejTodo"></ul>
+    </div>
+  </div>
+</div>
+
+<button class="btn" id="csvBtn">Exportar histórico a CSV</button>
+<p class="foot">Datos Nov-25 a May-26 · Costo diario calculado como gasto mensual ÷ días reales del mes · Proyección a Jun-26</p>
+
+</div>
+
+<script>
+// ===== DATOS =====
+const D = {
+  mes:    ['Nov-25','Dic-25','Ene-26','Feb-26','Mar-26','Abr-26','May-26'],
+  dias:   [30,31,31,28,31,30,31],
+  leads:  [404,513,713,809,605,578,526],
+  cierres:[5,8,18,25,16,28,25],
+  gasto:  [111703.05,149477.81,160439.63,188040.67,210432.38,189662.56,208818.92],
+};
+const N = D.mes.length;
+D.costoLead = D.gasto.map((g,i)=>g/D.leads[i]);
+D.costoDiario = D.gasto.map((g,i)=>g/D.dias[i]);     // gasto mes / dias reales
+D.conv = D.cierres.map((c,i)=>c/D.leads[i]*100);
+D.cpa = D.gasto.map((g,i)=>g/D.cierres[i]);
+
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const peso=n=>'$'+Math.round(n).toLocaleString('es-MX');
+const NARANJA='#FF9416', NARANJA2='#FFB548', GRIS='#58595B', LINEA='#EFE7DB';
+
+// ===== SELECTOR MES =====
+const msel=$('#msel');
+D.mes.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m;msel.appendChild(o)});
+msel.value=N-1;
+msel.onchange=()=>{renderKPIs();renderFunnel()};
+
+// ===== KPIs =====
+function renderKPIs(){
+  const i=+msel.value, p=i>0?i-1:i;
+  const d=(cur,prev,inv=false)=>{
+    if(i===0)return '';
+    const ch=(cur-prev)/prev*100;
+    const good=inv?ch<0:ch>0;
+    return `<div class="delta ${good?'up':'down'}">${ch>0?'▲':'▼'} ${Math.abs(ch).toFixed(1)}%</div>`;
+  };
+  const k=[
+    {l:'Leads',v:D.leads[i].toLocaleString('es-MX'),d:d(D.leads[i],D.leads[p])},
+    {l:'Cierres',v:D.cierres[i],d:d(D.cierres[i],D.cierres[p])},
+    {l:'Conversión',v:D.conv[i].toFixed(2)+'%',d:d(D.conv[i],D.conv[p])},
+    {l:'Costo/lead',v:peso(D.costoLead[i]),d:d(D.costoLead[i],D.costoLead[p],true)},
+  ];
+  $('#kpis').innerHTML=k.map(x=>`<div class="kpi"><div class="lab">${x.l}</div><div class="val">${x.v}</div>${x.d}</div>`).join('');
+}
+
+// ===== GRAFICA PRINCIPAL =====
+let mainChart, curView='vol';
+function buildMain(view){
+  curView=view;
+  const ctx=$('#mainChart');
+  if(mainChart)mainChart.destroy();
+  const grad=ctx.getContext('2d').createLinearGradient(0,0,0,340);
+  grad.addColorStop(0,'rgba(255,148,22,.35)');grad.addColorStop(1,'rgba(255,148,22,0)');
+  let cfg;
+  const base={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{family:'Montserrat',weight:'600'},color:GRIS,usePointStyle:true,pointStyleWidth:10}},
+    tooltip:{backgroundColor:'#fff',titleColor:'#2B2B2D',bodyColor:GRIS,borderColor:LINEA,borderWidth:1,padding:12,cornerRadius:10,titleFont:{family:'Montserrat',weight:'700'},bodyFont:{family:'Montserrat'}}},
+    scales:{x:{grid:{display:false},ticks:{color:GRIS,font:{family:'Montserrat',weight:'600'}}},
+            y:{grid:{color:LINEA},ticks:{color:GRIS,font:{family:'Montserrat'}}}}};
+  if(view==='vol'){
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Leads',data:D.leads,backgroundColor:'rgba(255,181,72,.85)',borderRadius:8,yAxisID:'y'},
+      {label:'Costo/lead',data:D.costoLead,type:'line',borderColor:NARANJA,backgroundColor:grad,fill:true,tension:.4,borderWidth:3,pointBackgroundColor:NARANJA,pointRadius:4,yAxisID:'y1'}
+    ]},options:{...base,scales:{...base.scales,
+      y:{...base.scales.y,position:'left',title:{display:true,text:'Leads',color:GRIS}},
+      y1:{position:'right',grid:{display:false},ticks:{color:GRIS,callback:v=>'$'+v},title:{display:true,text:'Costo/lead',color:GRIS}}}}};
+  }else if(view==='conv'){
+    cfg={type:'line',data:{labels:D.mes,datasets:[
+      {label:'Conversión %',data:D.conv,borderColor:NARANJA,backgroundColor:grad,fill:true,tension:.4,borderWidth:3,pointBackgroundColor:NARANJA,pointRadius:5,pointHoverRadius:7}
+    ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>v+'%'}}}}};
+  }else if(view==='efi'){
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Costo diario real (gasto÷días)',data:D.costoDiario,backgroundColor:D.costoDiario.map((_,i)=>i===+msel.value?NARANJA:'rgba(255,181,72,.7)'),borderRadius:8}
+    ]},options:{...base,scales:{...base.scales,y:{...base.scales.y,ticks:{...base.scales.y.ticks,callback:v=>'$'+v.toLocaleString('es-MX')}}}}};
+  }else{
+    cfg={type:'bar',data:{labels:D.mes,datasets:[
+      {label:'Cierres',data:D.cierres,backgroundColor:'rgba(255,148,22,.85)',borderRadius:8},
+      {label:'Tendencia',data:trendLine(D.cierres),type:'line',borderColor:GRIS,borderDash:[6,5],borderWidth:2,pointRadius:0,tension:0}
+    ]},options:base};
+  }
+  mainChart=new Chart(ctx,cfg);
+}
+function trendLine(y){const n=y.length,x=[...Array(n).keys()];
+  const sx=x.reduce((a,b)=>a+b),sy=y.reduce((a,b)=>a+b),sxy=x.reduce((a,b,i)=>a+b*y[i],0),sxx=x.reduce((a,b)=>a+b*b,0);
+  const m=(n*sxy-sx*sy)/(n*sxx-sx*sx),b=(sy-m*sx)/n;return x.map(v=>m*v+b);}
+$$('#tabs .tab').forEach(t=>t.onclick=()=>{$$('#tabs .tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');buildMain(t.dataset.v)});
+
+// ===== EMBUDO =====
+let funnelChart;
+function renderFunnel(){
+  const i=+msel.value;
+  $('#funnelDesc').innerHTML=`Mes <b>${D.mes[i]}</b> — de la inversión a los cierres.`;
+  const inv=D.gasto[i],leads=D.leads[i],cal=Math.round(leads*0.42),cie=D.cierres[i];
+  const ctx=$('#funnelChart');if(funnelChart)funnelChart.destroy();
+  funnelChart=new Chart(ctx,{type:'bar',data:{labels:['Leads','Calificados (est.)','Cierres'],
+    datasets:[{data:[leads,cal,cie],backgroundColor:['rgba(255,181,72,.9)','rgba(255,148,22,.9)','rgba(224,83,61,.9)'],borderRadius:8}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',titleColor:'#2B2B2D',bodyColor:GRIS,borderColor:LINEA,borderWidth:1,padding:12,cornerRadius:10,
+        callbacks:{afterLabel:c=>c.dataIndex>0?'Tasa: '+(c.parsed.x/leads*100).toFixed(1)+'% de leads':'Inversión: '+peso(inv)}}},
+      scales:{x:{grid:{color:LINEA},ticks:{color:GRIS}},y:{grid:{display:false},ticks:{color:GRIS,font:{family:'Montserrat',weight:'700'}}}}}});
+}
+
+// ===== PROBABILISTICO =====
+function binom(){
+  const cl=+$('#sCL').value, cv=+$('#sCV').value/100, meta=+$('#sMT').value;
+  const presupMes=D.gasto[N-1];               // usa gasto real del ultimo mes
+  const leads=Math.round(presupMes/cl);
+  const exp=leads*cv;
+  const sd=Math.sqrt(leads*cv*(1-cv));
+  const lo=Math.max(0,Math.round(exp-1.28*sd)), hi=Math.round(exp+1.28*sd);
+  // prob de alcanzar meta (aprox normal)
+  const z=(meta-0.5-exp)/sd; const pMeta=1-normcdf(z);
+  $('#vCL').textContent=peso(cl);$('#vCV').textContent=(cv*100).toFixed(2)+'%';$('#vMT').textContent=meta;
+  $('#probExp').innerHTML=Math.round(exp)+' <small>cierres esperados</small>';
+  $('#probRange').textContent=lo+'–'+hi;
+  $('#probMeta').textContent=Math.round(pMeta*100)+'%';
+  $('#probLeads').textContent=leads.toLocaleString('es-MX');
+}
+function normcdf(z){return .5*(1+erf(z/Math.SQRT2))}
+function erf(x){const t=1/(1+.3275911*Math.abs(x));
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);
+  return x>=0?y:-y;}
+['sCL','sCV','sMT'].forEach(id=>$('#'+id).oninput=binom);
+
+// ===== HISTORICO =====
+function forecast(){
+  const y=D.cierres, n=N, x=[...Array(n).keys()];
+  // 1 regresion lineal
+  const tl=trendLine(y), lin=tl[n-1]+ (tl[n-1]-tl[n-2]); // extrapola 1 paso
+  const sx=x.reduce((a,b)=>a+b),sy=y.reduce((a,b)=>a+b),sxy=x.reduce((a,b,i)=>a+b*y[i],0),sxx=x.reduce((a,b)=>a+b*b,0);
+  const m=(n*sxy-sx*sy)/(n*sxx-sx*sx),b=(sy-m*sx)/n; const reg=m*n+b;
+  // 2 promedio movil ponderado
+  const w=[1,2,3,4,5,6,7]; const wma=y.reduce((a,v,i)=>a+v*w[i],0)/w.reduce((a,b)=>a+b);
+  // 3 compuesta: leads proy x conv ponderada
+  const lt=trendLine(D.leads); const leadsP=lt[n-1]+(lt[n-1]-lt[n-2]);
+  const cr=y.map((v,i)=>v/D.leads[i]); const convW=(cr[n-3]*1+cr[n-2]*2+cr[n-1]*3)/6;
+  const comp=leadsP*convW;
+  // 4 Holt
+  let lvl=y[0],tr=y[1]-y[0]; const a=.5,be=.3;
+  for(let t=1;t<n;t++){const last=lvl;lvl=a*y[t]+(1-a)*(lvl+tr);tr=be*(lvl-last)+(1-be)*tr;}
+  const holt=lvl+tr;
+  const models=[['Regresión lineal',reg],['Promedio ponderado',wma],['Tendencia compuesta',comp],['Suavizado Holt',holt]];
+  const vals=models.map(m=>m[1]);
+  const cons=vals.reduce((a,b)=>a+b)/4;
+  const std=Math.sqrt(vals.reduce((a,v)=>a+(v-cons)**2,0)/4);
+  const conf=std<3?['alta','Alta confianza']:std<6?['media','Confianza media']:['baja','Baja confianza'];
+  // render
+  $('#modTab').innerHTML=models.map(m=>`<tr><td>${m[0]}</td><td>${m[1].toFixed(1)}</td></tr>`).join('')+
+    `<tr class="consenso"><td>Consenso</td><td>${cons.toFixed(1)}</td></tr>`;
+  $('#confBadge').textContent=conf[1];$('#confBadge').className='conf '+conf[0];
+  $('#consNum').innerHTML=Math.round(cons)+' <small>cierres · consenso Jun-26</small>';
+  $('#consRange').textContent=Math.round(cons-std)+'–'+Math.round(cons+std);
+  const vsPrev=cons-y[n-1];
+  $('#consVs').innerHTML=(vsPrev>=0?'+':'')+vsPrev.toFixed(0);
+  $('#consVs').style.color=vsPrev>=0?'#2E9E6B':'#E0533D';
+  $('#consNote').textContent=`Los 4 modelos oscilan entre ${Math.min(...vals).toFixed(0)} y ${Math.max(...vals).toFixed(0)}. La regresión es la más optimista por tu fuerte tendencia de crecimiento (+${m.toFixed(1)}/mes); el promedio ponderado equilibra hacia abajo. El consenso es tu mejor estimación central.`;
+}
+
+// ===== CONSEJOS META =====
+const tips=[
+  ['🎯','Consolida conjuntos de anuncios','Tienes 526 leads con costo subiendo a $397. Junta audiencias que compiten entre sí en una sola campaña Advantage+ para evitar solapamiento de subasta y dejar que Meta optimice el reparto.'],
+  ['🧲','Filtra leads en el formulario','La conversión a cierre es 4.75%. Agrega 1-2 preguntas calificadoras (presupuesto, zona, intención de compra) en el Instant Form para que lleguen menos leads pero más calificados, bajando tu CPA real.'],
+  ['💬','Renueva creativos cada 10-14 días','El costo/lead subió +44% desde enero: señal de fatiga de creativo. Rota 3-4 variantes nuevas (video corto, testimonio, recorrido del desarrollo) y deja correr a las ganadoras.'],
+  ['📱','Activa retargeting de calientes','Crea una audiencia de quienes vieron 50%+ del video o abrieron el formulario sin enviar. Re-impactarlos suele cerrar al doble de tasa y a menor costo que prospección fría.'],
+  ['⏱','Optimiza por evento de calidad','Si tu pixel/CAPI manda el evento de "lead calificado" o "cita agendada", optimiza la campaña hacia ese evento, no hacia "lead". Meta aprende a traerte gente parecida a los que sí cierran.'],
+  ['🗺','Excluye zonas que no cierran','Revisa el desglose por ubicación. Si hay municipios o radios con muchos leads y cero cierres, exclúyelos para reconcentrar el gasto donde sí convierte.'],
+];
+function renderTips(){
+  const mid=Math.ceil(tips.length/2);
+  const html=t=>`<div class="tip"><div class="ico">${t[0]}</div><div class="tx"><h4>${t[1]}</h4><p>${t[2]}</p></div></div>`;
+  $('#tipsA').innerHTML=tips.slice(0,mid).map(html).join('');
+  $('#tipsB').innerHTML=tips.slice(mid).map(html).join('');
+}
+
+// ===== MEJORAS =====
+$('#mejDone').innerHTML=[
+  'Conversión a cierre pasó de 1.24% (Nov) a 4.75% (May): casi 4× mejor.',
+  'CPA bajó de $22,340 a ~$8,350 por cierre: el embudo es mucho más eficiente.',
+  'Cierres mensuales subieron de 5 a 25-28 de forma sostenida.',
+  'El equipo cierra mejor lo que llega: la calidad de seguimiento mejoró claramente.'
+].map(t=>`<li>${t}</li>`).join('');
+$('#mejTodo').innerHTML=[
+  'Costo por lead subió +44% (de $225 a $397): hay que recuperar eficiencia en captación.',
+  'Volumen de leads cae desde Feb (809 → 526): reactivar prospección sin subir presupuesto.',
+  'Falta medir "calificados" y "citas" de forma consistente para optimizar por calidad.',
+  'No hay retargeting estructurado: se está dejando cierre fácil sobre la mesa.',
+  'Creativos con fatiga: establecer calendario fijo de rotación cada 10-14 días.'
+].map(t=>`<li>${t}</li>`).join('');
+
+// ===== CSV =====
+$('#csvBtn').onclick=()=>{
+  let csv='\uFEFFMes,Dias,Leads,Cierres,Conversion%,Gasto,CostoLead,CostoDiarioReal,CPA\n';
+  for(let i=0;i<N;i++)csv+=`${D.mes[i]},${D.dias[i]},${D.leads[i]},${D.cierres[i]},${D.conv[i].toFixed(2)},${D.gasto[i].toFixed(2)},${D.costoLead[i].toFixed(2)},${D.costoDiario[i].toFixed(2)},${D.cpa[i].toFixed(2)}\n`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='portalia_leads.csv';a.click();
+};
+
+// ===== INIT =====
+renderKPIs();buildMain('vol');renderFunnel();binom();forecast();renderTips();
+</script>
+</body>
+</html>
